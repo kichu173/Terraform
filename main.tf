@@ -1,6 +1,6 @@
 # write configuration that will allow terraform to connect to our AWS account.
 # Don't hard-code credentials directly in the configuration file
-# In proramming language terms, privder = import library.
+# In programming language terms, provider = import library.
 # resource/data = function call of library.
 # arguments = parameter of a function.
 provider "aws" {
@@ -23,7 +23,7 @@ variable "environment" {
     description = "deploymet environment"
 }
 
-# create new resource in the aws is using "resource" keyword. resource <provider>_<resourceType> "varialename - name we can define".
+# create new resource in the aws is using "resource" keyword. resource <provider>_<resourceType> "variablename - name we can define".
 resource "aws_vpc" "development-vpc" {
     # going to be a private IP address range for that specific VPC (https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/vpc)
     cidr_block = var.vpc_cidr_block
