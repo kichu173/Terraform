@@ -7,3 +7,6 @@
 
 # tfvars variables files, may include sensitive data
 *.tfvars
+
+£ igbore crash logs
+crash.log
