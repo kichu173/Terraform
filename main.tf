@@ -2,33 +2,36 @@ provider "aws" {
     region = "ap-south-1"
 }
 
+# usage of existing vpc module
+module "vpc" {
+    source = "terraform-aws-modules/vpc/aws"
+    # you can mention version if you want to use that specific version from "provision instructions" (https://registry.terraform.io/modules/terraform-aws-modules/vpc/aws/latest)
 
-resource "aws_vpc" "myapp-vpc" {
-    cidr_block = var.vpc_cidr_block
-    tags = {
-        Name: "${var.env_prefix}-vpc" # dev-vpc, prod-vpc, staging-vpc
+    # we need same exact configuration we had before
+    name = "my-vpc"
+    cidr = var.vpc_cidr_block
+
+    azs             = [var.avail_zone]
+    public_subnets  = [var.subnet_cidr_block]
+    public_subnet_tags = { #input (https://registry.terraform.io/modules/terraform-aws-modules/vpc/aws/latest?tab=inputs)
+        Name = "${var.env_prefix}-subnet-1"
     }
-}
-# Use modules (how do we reference it from the another configuration file(subnet/main.tf,variables.f)).
-# How do we access the resources of a child module(subnet)
-module "myapp-subnet" {
-    source = "./modules/subnet" #path to reference (relative path to the current file (i-e) main.tf file)
-    subnet_cidr_block = var.subnet_cidr_block #keys are defined as variables in child module(subnet/variables.tf)
-    vpc_id = aws_vpc.myapp-vpc.id
-    avail_zone = var.avail_zone
-    env_prefix = var.env_prefix
+
+    tags = {
+        Name = "${var.env_prefix}-vpc"
+    }
 }
 
 module "myapp-server" {
     source = "./modules/webserver" #path to reference (relative path)
-    vpc_id = aws_vpc.myapp-vpc.id
+    vpc_id = module.vpc.vpc_id #outputs (https://registry.terraform.io/modules/terraform-aws-modules/vpc/aws/latest?tab=outputs)
     my_ip = var.my_ip
     env_prefix = var.env_prefix
     instance_type = var.instance_type
     avail_zone = var.avail_zone
     private_key_location = var.private_key_location
     public_key_location = var.public_key_location
-    subnet_id = module.myapp-subnet.subnet.id
+    subnet_id = module.vpc.public_subnets[0] #outputs - search public_subnets and study description ex:: Description: List of IDs of public subnets
 }
 
 # moved to modules(subnet/main.tf and created it's own variables.tf file).
@@ -74,8 +77,8 @@ module "myapp-server" {
 
 # subnet association with route table we created above
 resource "aws_route_table_association" "myapp-rtb-subnet" {
-    subnet_id = module.myapp-subnet.subnet.id # reference it from the child module(subnet) output.tf value(acts as to expose resource attributes to parent module).
-    route_table_id = module.myapp-subnet.route_table.id
+    subnet_id = module.vpc.public_subnets[0]
+    route_table_id = module.vpc.public_route_table_ids[0] #outputs
 }
 
 # create security group for firewall configuration inside vpc. (open ports 22(ssh from local) and 8080 to access our application deployed and running in ec2)
